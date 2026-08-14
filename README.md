@@ -18,11 +18,15 @@ original wording, all validated against the story checker in CI.
 
 ## Principles
 
-**The family owns the data.** Every story is a plain JSON file in a
-`Social Stories` folder in the user's own Google Drive. There is no server-side
-database and no account to close — the web app is stateless and holds nothing.
-The OAuth scope requested is `drive.file`, the narrowest one available: the app
-can only see files it created itself, never the rest of the user's Drive.
+**The family chooses where the data lives.** Stories can be kept in an account
+on the site, or as plain JSON files in a `Social Stories` folder in the user's
+own Google Drive, with a one-button backup from the first to the second. Both
+hold the identical document, so nothing is trapped in either.
+
+**Signing in asks for nothing it does not need.** Sign-in requests only
+`openid email profile` — no access to anyone's Drive. Drive is connected
+separately from Settings, and even then the scope is `drive.file`, the narrowest
+one Google offers: the app sees only files it created itself.
 
 **It has to work when the network doesn't.** Hospital corridors, buses and
 respite centres all have bad signal. The Android app treats its on-device cache
@@ -84,12 +88,8 @@ photo. Both clients resolve them to a local cached image.
 
 The web app typechecks, lints, passes the catalogue check and builds clean.
 
-The Android module has a committed Gradle wrapper and a CI job that assembles a
-debug APK on every push. It has **not been compiled on a developer machine
-yet** — the machine it was written on ran out of memory during Kotlin
-compilation, having got as far as merging resources and manifests successfully.
-Treat the first green CI run as the real verification, and expect to fix the
-usual first-build nits.
+The Android app **compiles**: CI assembles an ~11 MB debug APK on every push and
+uploads it as a build artifact. It has not yet been run on a device.
 
 ## CI/CD
 

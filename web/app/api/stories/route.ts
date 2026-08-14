@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listStories, requireToken, writeStory } from "@/lib/drive";
+import { getStore, storageMode } from "@/lib/store";
 import { errorResponse } from "@/lib/apiError";
 import type { Story } from "@/lib/types";
 
@@ -7,22 +7,23 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const token = await requireToken();
-    return NextResponse.json({ stories: await listStories(token) });
+    const store = await getStore();
+    return NextResponse.json({
+      stories: await store.list(),
+      storage: await storageMode(),
+    });
   } catch (e) {
     return errorResponse(e);
   }
 }
 
-/** Creates a new story file. Returns the Drive id to address it by from now on. */
+/** Creates a new story. Returns the id to address it by from now on. */
 export async function POST(req: Request) {
   try {
-    const token = await requireToken();
+    const store = await getStore();
     const story = (await req.json()) as Story;
-    const driveFileId = await writeStory(token, story);
-    return NextResponse.json({ driveFileId });
+    return NextResponse.json({ driveFileId: await store.write(story) });
   } catch (e) {
     return errorResponse(e);
   }
 }
-

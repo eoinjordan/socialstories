@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { templateById } from "@/lib/catalog";
-import { requireToken, writeStory } from "@/lib/drive";
+import { getStore } from "@/lib/store";
 import { resolveKeywords } from "@/lib/pictograms";
 import { DEFAULT_DISPLAY, SCHEMA_VERSION, type Story } from "@/lib/types";
 import { errorResponse } from "@/lib/apiError";
@@ -21,7 +21,7 @@ export async function POST(_req: Request, { params }: Ctx) {
     if (!template) {
       return NextResponse.json({ error: "Unknown template" }, { status: 404 });
     }
-    const token = await requireToken();
+    const store = await getStore();
 
     const media = await resolveKeywords([
       template.cover,
@@ -52,8 +52,7 @@ export async function POST(_req: Request, { params }: Ctx) {
       updatedAt: now,
     };
 
-    const driveFileId = await writeStory(token, story);
-    return NextResponse.json({ driveFileId });
+    return NextResponse.json({ driveFileId: await store.write(story) });
   } catch (e) {
     return errorResponse(e);
   }

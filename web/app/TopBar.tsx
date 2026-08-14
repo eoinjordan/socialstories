@@ -11,6 +11,9 @@ export default async function TopBar() {
       <span className="spacer" />
       {session?.user ? (
         <>
+          <Link className="btn secondary" href="/settings">
+            Settings
+          </Link>
           <span className="muted">{session.user.email}</span>
           <form
             action={async () => {

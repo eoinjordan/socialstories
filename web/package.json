@@ -12,6 +12,7 @@
     "check:symbols": "tsx scripts/check-catalog.mts --symbols"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "next": "15.1.6",
     "next-auth": "5.0.0-beta.25",
     "react": "19.0.0",

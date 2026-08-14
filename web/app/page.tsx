@@ -10,8 +10,9 @@ export default async function Home() {
       <h1>Social Stories &amp; Care Pathways</h1>
       <p style={{ fontSize: "1.15rem", maxWidth: "60ch" }}>
         Build picture-led stories and step-by-step care pathways for people with
-        literacy or communication differences. Everything you make is saved to
-        your own Google Drive — we keep no copy.
+        literacy or communication differences. Sign in and start writing —
+        stories are kept in your account, and you can keep them in your own
+        Google Drive instead, or back them up there, whenever you want.
       </p>
 
       <form
@@ -47,11 +48,12 @@ export default async function Home() {
           </p>
         </div>
         <div className="card">
-          <h2>Your Drive, your data</h2>
+          <h2>Your data, your choice</h2>
           <p className="muted">
-            Stories live as plain JSON files in a &ldquo;Social Stories&rdquo;
-            folder in your Drive. The Android app caches the same files for
-            offline use.
+            Keep stories in your account here, or in a plain folder in your own
+            Google Drive — or keep them here and back them up to Drive. Signing
+            in asks for no access to your Drive at all until you choose to
+            connect it.
           </p>
         </div>
       </div>

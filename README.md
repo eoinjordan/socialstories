@@ -4,12 +4,19 @@ Picture-led social stories and care pathways for people with literacy,
 communication or learning differences — authored on the web, played on an
 Android tablet, stored in the family's own Google Drive.
 
-Two clients, one file format:
+| | |
+|---|---|
+| **Web app** | <https://socialstories-chi.vercel.app> |
+| **Offline builder** (no account) | <https://eoinjordan.github.io/socialstories/> |
+| **Android APK** | [latest release](https://github.com/eoinjordan/socialstories/releases/latest) |
+
+Three clients, one file format:
 
 | | |
 |---|---|
 | `web/` | Next.js app (deploys to Vercel). Google sign-in, story/pathway editor, symbol library, full-screen play mode. |
 | `android/` | Kotlin + Jetpack Compose app. Syncs from Drive, caches everything on device, plays offline, can be locked open as a status radiator. |
+| `pages/` | Static site for GitHub Pages: a builder needing no account and no server, sharing the same format, checks and symbols. |
 | `catalog/` | Licence, provenance and method notes for the starter catalogue. |
 
 40 CC0 starter templates ship in `web/lib/catalog.ts` — 20 that explain a
@@ -87,6 +94,9 @@ photo. Both clients resolve them to a local cached image.
 ## Status
 
 The web app typechecks, lints, passes the catalogue check and builds clean.
+
+231 ARASAAC pictograms covering 239 terms ship with both clients, so the symbol
+picker works with no network.
 
 The Android app **compiles**: CI assembles an ~11 MB debug APK on every push and
 uploads it as a build artifact. It has not yet been run on a device.

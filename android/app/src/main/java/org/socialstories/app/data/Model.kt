@@ -5,8 +5,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * Mirror of `web/lib/types.ts`. The exact same JSON bytes are written by the
- * website and read here, so any change to one file has to be made to the other.
+ * Mirror of `web/lib/types.ts` (schema v2). The exact same JSON bytes are
+ * written by the website and read here, so any change to one file has to be
+ * made to the other.
  *
  * Unknown fields are ignored rather than fatal: a newer website must never stop
  * an older installed app from opening a story a family depends on.
@@ -58,9 +59,13 @@ data class DisplaySettings(
 
 @Serializable
 data class Story(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val id: String,
     val kind: String = "story",
+    /** "explain" or "celebrate" — see the 7th criterion in catalog/SOURCES.md. */
+    val purpose: String = "explain",
+    /** Who the story is for, used to group a person's collection. */
+    val audience: String? = null,
     val title: String = "",
     val carerNotes: String? = null,
     val cover: Media = Media.None,

@@ -124,7 +124,11 @@ private fun StoryCard(
                 }
             }
             Text(
-                if (cached.story.kind == "pathway") "PATHWAY" else "STORY",
+                when {
+                    cached.story.purpose == "celebrate" -> "CELEBRATES"
+                    cached.story.kind == "pathway" -> "PATHWAY"
+                    else -> "STORY"
+                },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )

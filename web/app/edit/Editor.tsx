@@ -117,6 +117,35 @@ export default function Editor({ fileId }: { fileId: string }) {
         </div>
 
         <div className="field">
+          <label htmlFor="purpose">What is this story for?</label>
+          <select
+            id="purpose"
+            value={story.purpose}
+            onChange={(e) =>
+              update((d) => void (d.purpose = e.target.value as Story["purpose"]))
+            }
+          >
+            <option value="explain">Explaining a situation</option>
+            <option value="celebrate">Celebrating what they do well</option>
+          </select>
+          <p className="muted" style={{ marginTop: 6 }}>
+            At least half of the stories written for someone should celebrate
+            something they already do well.
+          </p>
+        </div>
+
+        <div className="field">
+          <label htmlFor="audience">Who is this for?</label>
+          <input
+            id="audience"
+            type="text"
+            value={story.audience ?? ""}
+            placeholder="A first name is enough"
+            onChange={(e) => update((d) => void (d.audience = e.target.value))}
+          />
+        </div>
+
+        <div className="field">
           <label htmlFor="kind">Type</label>
           <select
             id="kind"

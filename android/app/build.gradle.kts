@@ -20,8 +20,25 @@ android {
         // android/README.md asks for the release SHA-1 fingerprint instead.
     }
 
+    // Signing comes entirely from the environment, so no keystore or password
+    // is ever committed. Absent those variables the release build is simply
+    // unsigned, which is fine for CI and for anyone who has cloned the repo.
+    signingConfigs {
+        create("release") {
+            val keystore = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (!keystore.isNullOrBlank()) {
+                storeFile = file(keystore)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
+                .takeIf { !System.getenv("ANDROID_KEYSTORE_PATH").isNullOrBlank() }
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -41,6 +58,13 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Fail the build on real errors, but do not let a new lint check in a
+        // future AGP version block a release over style.
+        abortOnError = true
+        warningsAsErrors = false
     }
 }
 

@@ -12,9 +12,9 @@ Two clients, one file format:
 | `android/` | Kotlin + Jetpack Compose app. Syncs from Drive, caches everything on device, plays offline, can be locked open as a status radiator. |
 | `catalog/` | Licence, provenance and method notes for the starter catalogue. |
 
-20 CC0 starter templates ship in `web/lib/catalog.ts`, covering daily routines,
-health and care pathways, school, community, feelings and safety — all original
-wording, all validated against the story checker.
+40 CC0 starter templates ship in `web/lib/catalog.ts` — 20 that explain a
+situation and 20 that celebrate something the reader already does well, all
+original wording, all validated against the story checker in CI.
 
 ## Principles
 
@@ -37,10 +37,13 @@ the next is exactly wrong for someone who depends on it being predictable.
 three-second hold, and on Android the app additionally pins itself to the screen.
 
 **The editor helps you write well, and admits what it cannot judge.** A live
-story check implements Carol Gray's published authoring criteria — the
-describe-to-coach ratio, second-person and commanding language, the six
-questions, sentence-type balance. It is a drafting aid, not a certification, and
-it says so on screen. See [`catalog/SOURCES.md`](catalog/SOURCES.md).
+story check implements the **Social Stories 10.4 criteria** — the Story Rating
+(describing ÷ coaching, which must reach 4), the one-coaching-sentence limit,
+second person, judging vocabulary, the WH questions, and the rule that a story
+never replaces supervision. The library separately checks the criterion that at
+least half of a person's stories celebrate what they do well. It is a drafting
+aid, not a certification, and says so on screen.
+See [`catalog/SOURCES.md`](catalog/SOURCES.md).
 
 ## The file format
 
@@ -79,10 +82,26 @@ photo. Both clients resolve them to a local cached image.
 
 ## Status
 
-The web app builds clean and is ready to deploy. The Android module is complete
-source but **has not been compiled** — it was written on a machine with no JDK
-installed. Open `android/` in Android Studio, let it create the Gradle wrapper,
-and expect to fix the usual first-build version nits.
+The web app typechecks, lints, passes the catalogue check and builds clean.
+
+The Android module has a committed Gradle wrapper and a CI job that assembles a
+debug APK on every push. It has **not been compiled on a developer machine
+yet** — the machine it was written on ran out of memory during Kotlin
+compilation, having got as far as merging resources and manifests successfully.
+Treat the first green CI run as the real verification, and expect to fix the
+usual first-build nits.
+
+## CI/CD
+
+| Workflow | What it does |
+|---|---|
+| [`web.yml`](.github/workflows/web.yml) | Typecheck, lint, catalogue check, `next build`. A second non-blocking job confirms every template picture keyword still resolves against ARASAAC. |
+| [`android.yml`](.github/workflows/android.yml) | Lint and assemble the debug APK, uploaded as a build artifact. On a `v*` tag, builds a release APK — signed if keystore secrets are configured, unsigned otherwise. |
+| [`deploy-vercel.yml`](.github/workflows/deploy-vercel.yml) | Preview deploy per PR, production deploy on `main`. Skips itself entirely unless `VERCEL_TOKEN` is set, because Vercel's own Git integration is the simpler option and you only want one of the two. |
+
+None of the workflows need secrets to pass. The deploy and signing jobs detect
+missing credentials and skip with a notice rather than failing, so a fresh clone
+is green out of the box.
 
 ## Setup
 

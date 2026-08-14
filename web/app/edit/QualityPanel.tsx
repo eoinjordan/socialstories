@@ -53,17 +53,20 @@ export default function QualityPanel({ story }: { story: Story }) {
           </div>
 
           <p className="muted" style={{ marginTop: 8 }}>
-            Describing-to-coaching ratio:{" "}
+            Story Rating:{" "}
             <strong>
-              {report.describeRatio === null
-                ? "no coaching sentences"
-                : report.describeRatio.toFixed(1)}
+              {report.storyRating === null
+                ? "nothing coaches — that is fine"
+                : report.storyRating.toFixed(1)}
             </strong>
-            {report.describeRatio !== null && report.describeRatio >= 2
-              ? " — at or above the recommended 2."
-              : report.describeRatio !== null
-                ? " — the guidance asks for 2 or more."
+            {report.storyRating !== null && report.storyRating >= 4
+              ? " — at or above the required 4."
+              : report.storyRating !== null
+                ? " — the criteria require 4 or more."
                 : ""}
+            <br />
+            Describing sentences ÷ coaching sentences, counting the title as a
+            describing sentence.
           </p>
 
           {report.findings.length === 0 ? (
@@ -90,11 +93,13 @@ export default function QualityPanel({ story }: { story: Story }) {
           )}
 
           <p className="muted" style={{ fontSize: "0.85rem", marginTop: 20 }}>
-            These checks follow the publicly described Social Story authoring
-            criteria developed by Carol Gray. Passing them does not make this a
-            certified Social Story™ — and no automated check can tell you
-            whether the story is true, kind, or right for the person you are
-            writing it for. You still have to read it aloud and think.
+            These checks follow the Social Stories 10.4 criteria (Carol Gray,
+            Catherine Faherty, Siobhan Timmins &amp; Aaron Lanou). Passing them
+            does <strong>not</strong> make this a Social Story. Most of the
+            criteria — gathering information about the person, judging what
+            they have misunderstood, planning how the story is introduced and
+            reviewed — are human work no checker can see. Read it aloud before
+            you use it.
           </p>
         </>
       ) : null}

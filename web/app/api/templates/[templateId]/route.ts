@@ -33,6 +33,7 @@ export async function POST(_req: Request, { params }: Ctx) {
       schemaVersion: SCHEMA_VERSION,
       id: crypto.randomUUID(),
       kind: template.kind,
+      purpose: template.purpose,
       title: template.title,
       carerNotes:
         `Started from the "${template.title}" template. ` +
@@ -43,6 +44,7 @@ export async function POST(_req: Request, { params }: Ctx) {
         id: crypto.randomUUID(),
         text: s.text,
         spoken: s.spoken,
+        sentenceType: s.sentenceType,
         media: media.get(s.picture) ?? { kind: "none" },
       })),
       display: { ...DEFAULT_DISPLAY, ...template.display },

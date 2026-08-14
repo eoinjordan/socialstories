@@ -29,28 +29,43 @@ text from any of these.
 
 ## What the checker actually implements
 
-| Criterion | Implemented as |
+| Criterion (10.4) | Implemented as |
 |---|---|
-| 3 — three parts and a title | Warns on a placeholder title and on stories under three steps |
-| 4 — format | Flags steps over ~20 words and steps with no picture |
-| 5 — voice and vocabulary | Flags "you", commanding/judging words, vague verbs, absolutes |
-| 6 — six questions | Notes which of who/what/when/where/why look unanswered |
-| 7 — sentence types | Per-step tagging, with an auto-guess; requires ≥1 descriptive |
-| 8 — the ratio | Computes (descriptive + perspective + affirmative) ÷ coaching, wants ≥ 2 |
-| 9 — make it theirs | Nudges towards real photos over generic symbols |
+| 1 — philosophy, definition, goal | Flags supervision-critical topics (roads, medicines, water, getting lost) with a reminder that a story never replaces an adult being there |
+| 3 — structure | Warns on a placeholder title and on stories with fewer than three parts |
+| 4 — format | Flags steps over ~20 words, steps with no picture, and stories with no real photos |
+| 5 — tone | Flags second person, judging vocabulary, narration of the reader's own difficult behaviour, and unchecked absolutes |
+| 6 — WH questions | Notes which of who/what/when/where/why look unanswered |
+| 7 — celebrate | Library-wide: warns when under half of a person's stories celebrate them |
+| 8 — the formula | Story Rating = describing ÷ coaching, title counted as describing, must reach **4**; and at most **one** sentence that coaches the reader |
 
-Criteria 1, 2 and 10 — set a goal, gather information from the people who know
-the person, and plan how the story is introduced, reviewed and retired — are
-human work that no editor can check. They are the most important ones. The
-`carerNotes` field exists to hold that thinking; there is a case for turning it
-into a structured goal/observation/review prompt later.
+Criteria 2, 9 and 10 — gathering information from the people who know the
+person, revising until it is right, and planning how the story is introduced,
+reviewed and retired — are human work no editor can check. They are the most
+important ones. The `carerNotes` field exists to hold that thinking; there is a
+case for turning it into a structured goal / observation / review prompt later.
+
+### A correction worth recording
+
+This checker was first written against the University of Bath summary, which
+documents an earlier revision of the criteria. Two things differ materially in
+10.4 and were wrong until the primary source was read:
+
+- the Story Rating threshold is **4**, not 2;
+- there may be **at most one** sentence that coaches the reader, and the title
+  counts as a describing sentence in the formula.
+
+10.4 also collapses the seven sentence types to two (Descriptive and Coaching),
+which is why `SentenceType` has three values rather than five — we split
+Coaching into "coaches the reader" and "says what other people do" only because
+the one-sentence cap applies to the former.
 
 ## Things worth knowing that the checker cannot enforce
 
-- **Half of a person's stories should praise something they already do well.**
-  A library that is entirely instructions is a library that says "you are a
-  problem". This would be a good future check across the whole library, not the
-  single story.
+- **A story is never introduced as a consequence for something going wrong.**
+  It is read in a calm, positive moment. Nothing in a text editor can enforce
+  this, and it is one of the screening questions that disqualifies a story
+  outright.
 - **Gather information first.** The point of the process is understanding the
   situation from the person's point of view, not producing a document.
 - **Be honest about unpleasant parts.** "There is a quick sharp feeling" earns

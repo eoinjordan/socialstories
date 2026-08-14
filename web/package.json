@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:catalog": "tsx scripts/check-catalog.mts",
+    "check:symbols": "tsx scripts/check-catalog.mts --symbols"
   },
   "dependencies": {
     "next": "15.1.6",
@@ -19,6 +21,9 @@
     "@types/node": "22.10.5",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "eslint": "8.57.1",
+    "eslint-config-next": "15.1.6",
+    "tsx": "4.19.2",
     "typescript": "5.7.3"
   }
 }

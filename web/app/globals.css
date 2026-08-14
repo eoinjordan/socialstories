@@ -422,3 +422,8 @@ label {
   background: #fdecec;
   color: var(--danger);
 }
+
+.tag.good {
+  background: #e8f3ec;
+  color: #14532d;
+}

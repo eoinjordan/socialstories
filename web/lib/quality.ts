@@ -1,22 +1,32 @@
-import type { SentenceType, Story } from "./types";
+import type { SentenceType, Story, StorySummary } from "./types";
 
 /**
- * Checks a story against the widely-published Social Story authoring criteria
- * developed by Carol Gray, as summarised in the University of Bath / SOFA
- * "Guidance for writing and delivering Social Stories".
+ * Checks a story against the **Social Stories 10.4 Criteria** (Carol Gray,
+ * Catherine Faherty, Siobhan Timmins & Aaron Lanou, 2023), and against the
+ * "It's Not a Social Story if…" screening questions that accompany them.
  *
  * IMPORTANT, both legally and honestly:
  *
  *  - This implements the *method* — a described procedure — in our own words.
- *    No text from Carol Gray's handouts, the Bath guidance, or any other
- *    publication is reproduced here or anywhere else in this repository.
- *  - "Social Story™" is Carol Gray's trademark and is attached to her criteria.
- *    Passing these checks does NOT make a story a certified Social Story, and
- *    the UI must never claim it does. This is a drafting aid that catches the
- *    common mistakes; it is not an authority and it cannot judge whether the
- *    story is true, kind, or right for the particular child.
- *  - Anyone writing stories seriously should read the source material. See
- *    catalog/README.md for where to find it.
+ *    No text from the 10.4 handouts, the Bath/SOFA guidance, or any other
+ *    publication is reproduced here or anywhere in this repository. Those
+ *    documents are copyrighted and licensed for private use only.
+ *  - "Social Story" and "Social Article" are Carol Gray's terms, attached to
+ *    these criteria. Passing these checks does NOT make a story a Social Story
+ *    and the UI must never claim it does. Most of the criteria — gathering
+ *    information, judging what the person has misunderstood, choosing a
+ *    respectful tone, planning how the story is introduced — are human work
+ *    that no parser can see.
+ *  - The screening instrument itself says it cannot confirm a story *is* a
+ *    Social Story, only spot some ways it is not. The same is true here, more
+ *    so. This is a drafting aid.
+ *
+ * Notable 10.4 changes from earlier revisions, which this file follows:
+ *  - two sentence types, not seven;
+ *  - the Story Rating must be **4 or more** (it was 2 in the 10.2-era guides);
+ *  - **at most one** sentence may coach the Audience;
+ *  - the title counts as a Descriptive Sentence in the formula;
+ *  - at least **half** of a person's stories must celebrate what they do well.
  */
 
 export type Severity = "must" | "should" | "idea";
@@ -34,28 +44,48 @@ export interface Finding {
 
 export interface QualityReport {
   findings: Finding[];
-  /** Describing sentences ÷ coaching sentences. Null when nothing coaches. */
-  describeRatio: number | null;
+  /**
+   * Descriptive ÷ Coaching, with the title counted as Descriptive.
+   * Null when the story coaches nowhere, which is fine and common.
+   */
+  storyRating: number | null;
   counts: Record<SentenceType, number>;
   /** True when no "must" finding is outstanding. */
   passes: boolean;
 }
 
-/** Sentence types that describe rather than direct. */
-const DESCRIBING: SentenceType[] = ["descriptive", "perspective", "affirmative"];
+/** Second person turns a description into an instruction aimed at the reader. */
+const SECOND_PERSON = /\b(you|your|you're|yours|yourself|you'll|you've)\b/i;
 
 /**
- * Second person makes a story instruct rather than explain, which is the single
- * most common thing that turns a social story into a list of orders.
+ * Vocabulary the criteria rule out. The 10.4 screening lists should, shouldn't,
+ * must, mustn't, ought, bad, naughty and inappropriate explicitly, and says
+ * there are more; the rest here are the same kind of word.
  */
-const SECOND_PERSON = /\b(you|your|you're|yours|yourself)\b/i;
+const JUDGEMENTAL =
+  /\b(should|shouldn't|must|mustn't|ought|bad|naughty|inappropriate|misbehav\w*|stupid|silly|lazy|rude|wrong|disgusting|disgraceful)\b/i;
 
-/** Judgemental or commanding words the criteria steer away from. */
-const AUTHORITARIAN =
-  /\b(must|should|shouldn't|mustn't|don't|do not|never|always|bad|naughty|stupid|silly|wrong|can't|cannot|won't)\b/i;
+/** Vague verbs and nouns that dodge saying what actually happens. */
+const VAGUE = /\b(get|got|stuff|nice|good boy|good girl|behave)\b/i;
 
-/** Words that hedge instead of stating what actually happens. */
-const VAGUE = /\b(get|got|stuff|things|nice|good boy|good girl)\b/i;
+/** Absolutes a literal reader will hold the story to. */
+const ABSOLUTE = /\b(everyone|everybody|always|never|all people|nobody|no one)\b/i;
+
+/**
+ * Describing something the reader did wrong. The criteria forbid personalised
+ * accounts of an Audience's negative behaviour in either voice — it shames the
+ * reader in a document meant to reassure them.
+ */
+const NEGATIVE_SELF =
+  /\b(i|he|she|they)\s+(hit|hits|bit|bites|kick|kicks|punch|punches|shout|shouts|scream|screams|swear|swears|lash|lashes)\b/i;
+
+/**
+ * Topics where a story must not stand in for an adult being present. The
+ * criteria are explicit that a Social Story never replaces supervision, and
+ * road safety is the example they give.
+ */
+const SUPERVISION_TOPIC =
+  /\b(road|traffic|crossing|cross the|street|lost|stranger|fire|emergency|medicine|medication|knife|kettle|hot water|swim|water|drown)\b/i;
 
 export function checkStory(story: Story): QualityReport {
   const findings: Finding[] = [];
@@ -63,137 +93,151 @@ export function checkStory(story: Story): QualityReport {
 
   const counts: Record<SentenceType, number> = {
     descriptive: 0,
-    perspective: 0,
-    affirmative: 0,
-    coaching: 0,
-    partial: 0,
+    coachesAudience: 0,
+    coachesTeam: 0,
   };
   for (const step of steps) {
     counts[step.sentenceType ?? classify(step.text)]++;
   }
 
-  // --- Criterion 3: three parts and a title -------------------------------
-  if (!story.title.trim() || /^new (social story|care pathway)$/i.test(story.title)) {
+  const hasTitle = Boolean(
+    story.title.trim() &&
+      !/^new (social story|care pathway|celebration story)$/i.test(story.title),
+  );
+
+  // --- Criterion 8: the formula -------------------------------------------
+  // The title is itself a Descriptive Sentence and counts in the numerator.
+  const describing = counts.descriptive + (hasTitle ? 1 : 0);
+  const coaching = counts.coachesAudience + counts.coachesTeam;
+  const storyRating = coaching === 0 ? null : describing / coaching;
+
+  if (storyRating !== null && storyRating < 4) {
+    findings.push({
+      id: "story-rating",
+      severity: "must",
+      criterion: 8,
+      title: `Story Rating is ${storyRating.toFixed(1)} — it needs to be 4 or more`,
+      detail:
+        `${describing} sentence${describing === 1 ? "" : "s"} describe ` +
+        `(counting the title) and ${coaching} coach. The criteria ask for at ` +
+        "least four describing sentences per coaching one, so the story " +
+        "explains the situation rather than issuing instructions. Add " +
+        "description, or turn an “I will…” into “people usually…”.",
+    });
+  }
+
+  if (counts.coachesAudience > 1) {
+    findings.push({
+      id: "too-much-coaching",
+      severity: "must",
+      criterion: 8,
+      steps: indexesOfType(steps, "coachesAudience"),
+      title: "Only one sentence may tell the reader what to do",
+      detail:
+        `There are ${counts.coachesAudience}. Keep the single most useful one ` +
+        "and rewrite the others as description — what happens, what other " +
+        "people do, or what usually works — so the story stays an explanation.",
+    });
+  }
+
+  // --- Criterion 3: structure ----------------------------------------------
+  if (!hasTitle) {
     findings.push({
       id: "title-missing",
       severity: "must",
       criterion: 3,
       title: "Give it a real title",
       detail:
-        "The title says what the story is about. Keep it positive and about " +
-        "what the person is doing, not what they must stop doing — " +
-        "\"Getting my hair cut\" rather than \"Not shouting at the barber\".",
+        "The title has to represent the topic, and it counts as a describing " +
+        "sentence in the formula. Keep it about what the person is doing — " +
+        "“Getting my hair cut”, not “Not shouting at the barber”.",
     });
   }
   if (steps.length < 3) {
     findings.push({
-      id: "too-short",
-      severity: "should",
+      id: "three-parts",
+      severity: "must",
       criterion: 3,
-      title: "Add a beginning, middle and end",
+      title: "A story needs an introduction, a body and a conclusion",
       detail:
-        "A story usually needs at least three steps: one that introduces the " +
-        "topic, some that describe what happens, and one that closes on a " +
-        "settled note.",
+        "Three parts, each of which may be a single sentence: one that " +
+        "introduces the topic, one or more that add the detail, and one that " +
+        "sums up and settles.",
     });
   }
 
-  // --- Criterion 5: voice and vocabulary ----------------------------------
-  const secondPerson = indexesMatching(steps, SECOND_PERSON);
-  if (secondPerson.length > 0) {
-    findings.push({
-      id: "second-person",
-      severity: "must",
-      criterion: 5,
-      steps: secondPerson,
-      title: "Avoid “you”",
-      detail:
-        "Write as “I” (or “he”/“she”/“they” for things that are hard to own). " +
-        "“You” turns an explanation into an instruction aimed at the reader.",
-    });
-  }
+  // --- Criterion 5: tone, safety and respect -------------------------------
+  push(findings, steps, SECOND_PERSON, {
+    id: "second-person",
+    severity: "must",
+    criterion: 5,
+    title: "Remove “you”",
+    detail:
+      "Stories are written in the first person (“I”, “we”) or the third " +
+      "(“he”, “she”, “they”). “You” points at the reader and instructs them.",
+  });
 
-  const bossy = indexesMatching(steps, AUTHORITARIAN);
-  if (bossy.length > 0) {
+  push(findings, steps, JUDGEMENTAL, {
+    id: "judgemental",
+    severity: "must",
+    criterion: 5,
+    title: "Remove judging or commanding words",
+    detail:
+      "Words like “should”, “must”, “ought”, “bad”, “naughty” and " +
+      "“inappropriate” are ruled out — they turn a reassuring document into a " +
+      "telling-off. “Usually”, “I can try to…” and plain description carry the " +
+      "same information without the judgement.",
+  });
+
+  push(findings, steps, NEGATIVE_SELF, {
+    id: "negative-behaviour",
+    severity: "must",
+    criterion: 5,
+    title: "Do not narrate what the reader did wrong",
+    detail:
+      "A personalised account of the reader's own difficult behaviour, in any " +
+      "voice, shames them in a document meant to reassure. Describe what " +
+      "happens and what helps instead — the reader already knows what they did.",
+  });
+
+  push(findings, steps, ABSOLUTE, {
+    id: "absolutes",
+    severity: "should",
+    criterion: 5,
+    title: "Check the absolute words are literally true",
+    detail:
+      "“Always”, “never” and “everyone” will be taken at face value, and the " +
+      "story loses trust the first time reality disagrees. “Usually” and " +
+      "“most people” stay true.",
+  });
+
+  push(findings, steps, VAGUE, {
+    id: "vague",
+    severity: "idea",
+    criterion: 5,
+    title: "Say exactly what happens",
+    detail:
+      "Literal accuracy is required. “We buy the bread” beats “we get the " +
+      "bread”; “the nurse looks in my ear” beats “the nurse does some things”.",
+  });
+
+  // The criteria are explicit that a story never replaces supervision.
+  const topic = `${story.title} ${steps.map((s) => s.text).join(" ")}`;
+  if (SUPERVISION_TOPIC.test(topic)) {
     findings.push({
-      id: "authoritarian",
+      id: "supervision",
       severity: "should",
-      criterion: 5,
-      steps: bossy,
-      title: "Soften commanding or judging words",
+      criterion: 1,
+      title: "This story must not stand in for an adult being there",
       detail:
-        "Words like “must”, “should”, “never” and “naughty” make the story " +
-        "sound like a telling-off. “I can try to…” and “usually” carry the " +
-        "same information without the judgement — and stay true when the " +
-        "thing occasionally does not happen.",
+        "Road safety, getting lost, medicines and water are the classic " +
+        "examples: the story explains what happens, it does not make the " +
+        "situation safe. Make sure the supervision plan is written in the " +
+        "carer notes, and that nobody treats the story as the safeguard.",
     });
   }
 
-  const vague = indexesMatching(steps, VAGUE);
-  if (vague.length > 0) {
-    findings.push({
-      id: "vague",
-      severity: "idea",
-      criterion: 5,
-      steps: vague,
-      title: "Say exactly what happens",
-      detail:
-        "Literal accuracy matters. “We buy the bread” is clearer than “we get " +
-        "the bread”; “the nurse looks in my ear” is clearer than “the nurse " +
-        "does some things”.",
-    });
-  }
-
-  const absolutes = steps
-    .map((s, i) => ({ s, i }))
-    .filter(({ s }) => /\b(everyone|always|never|all people)\b/i.test(s.text))
-    .map(({ i }) => i);
-  if (absolutes.length > 0) {
-    findings.push({
-      id: "absolutes",
-      severity: "idea",
-      criterion: 5,
-      steps: absolutes,
-      title: "Check the absolute words are true",
-      detail:
-        "“Always”, “never” and “everyone” are taken literally. If there is any " +
-        "chance the story will be wrong one day, “usually” or “most people” " +
-        "keeps it trustworthy.",
-    });
-  }
-
-  // --- Criterion 7 & 8: sentence mix and the describe-to-direct ratio ------
-  if (counts.descriptive === 0 && steps.length > 0) {
-    findings.push({
-      id: "no-descriptive",
-      severity: "must",
-      criterion: 7,
-      title: "Add at least one plain description",
-      detail:
-        "Every story needs at least one sentence that simply states a fact " +
-        "about the situation — what happens, where, or who is there.",
-    });
-  }
-
-  const describing = DESCRIBING.reduce((n, t) => n + counts[t], 0);
-  const describeRatio = counts.coaching === 0 ? null : describing / counts.coaching;
-  if (describeRatio !== null && describeRatio < 2) {
-    findings.push({
-      id: "too-directive",
-      severity: "must",
-      criterion: 8,
-      title: "The story directs more than it explains",
-      detail:
-        `There ${describing === 1 ? "is" : "are"} ${describing} sentence` +
-        `${describing === 1 ? "" : "s"} that describe and ${counts.coaching} ` +
-        `that coach, a ratio of ${describeRatio.toFixed(1)}. The guidance asks ` +
-        "for at least two describing sentences for every coaching one, so the " +
-        "story explains the situation rather than issuing instructions. Add " +
-        "description, or turn a “I will…” into “people usually…”.",
-    });
-  }
-
-  // --- Criterion 6: the six questions --------------------------------------
+  // --- Criterion 6: the WH questions ---------------------------------------
   const all = steps.map((s) => `${s.text} ${s.spoken ?? ""}`).join(" ").toLowerCase();
   const unanswered = [
     { q: "where", re: /\b(at|in|on)\s+(the|my|our)\b|room|shop|school|hospital|home|outside/ },
@@ -205,32 +249,18 @@ export function checkStory(story: Story): QualityReport {
     .map(({ q }) => q);
   if (unanswered.length > 0 && steps.length >= 3) {
     findings.push({
-      id: "six-questions",
+      id: "wh-questions",
       severity: "idea",
       criterion: 6,
       title: `Consider answering: ${unanswered.join(", ")}`,
       detail:
-        "Stories work best when they cover who is involved, what happens, " +
-        "where and when it happens, why it happens, and how to take part. " +
-        "The missing ones above may be obvious to you but not to the reader.",
+        "Stories work best when they cover who is there, what happens, where " +
+        "and when, why it happens, and how to take part. The missing ones are " +
+        "often the ones that are obvious to you and invisible to the reader.",
     });
   }
 
-  // --- Criterion 9: make it theirs -----------------------------------------
-  const photos = story.steps.filter((s) => s.media.kind === "drive").length;
-  if (photos === 0 && steps.length > 0) {
-    findings.push({
-      id: "no-photos",
-      severity: "idea",
-      criterion: 9,
-      title: "Add photos of the real people and places",
-      detail:
-        "Generic symbols are a fine starting point, but a story lands much " +
-        "harder when it shows their actual dentist, their actual bus stop, " +
-        "their own face. Every picture can be swapped for a photo.",
-    });
-  }
-
+  // --- Criterion 4: format --------------------------------------------------
   const missingPictures = story.steps
     .map((s, i) => ({ s, i }))
     .filter(({ s }) => s.media.kind === "none" && s.text.trim())
@@ -248,7 +278,6 @@ export function checkStory(story: Story): QualityReport {
     });
   }
 
-  // --- Criterion 4: length --------------------------------------------------
   const longSteps = steps
     .map((s, i) => ({ s, i }))
     .filter(({ s }) => s.text.trim().split(/\s+/).length > 20)
@@ -261,64 +290,129 @@ export function checkStory(story: Story): QualityReport {
       steps: longSteps,
       title: "Some steps are long",
       detail:
-        "One idea per screen. If a step runs past about twenty words, it is " +
-        "usually two steps. Longer explanation can go in the spoken-only field.",
+        "One idea per screen. Past about twenty words a step is usually two " +
+        "steps. Longer explanation can go in the spoken-only field.",
+    });
+  }
+
+  if (story.steps.every((s) => s.media.kind !== "drive") && steps.length > 0) {
+    findings.push({
+      id: "no-photos",
+      severity: "idea",
+      criterion: 4,
+      title: "Add photos of the real people and places",
+      detail:
+        "Tailoring the story to the reader is a criterion in its own right. " +
+        "Their actual dentist, their actual bus stop, their own face — every " +
+        "picture here can be swapped for a photo.",
+    });
+  }
+
+  if (!story.audience?.trim()) {
+    findings.push({
+      id: "no-audience",
+      severity: "idea",
+      criterion: 7,
+      title: "Say who this story is for",
+      detail:
+        "Naming the reader lets the library check the rule that at least half " +
+        "of a person's stories should celebrate what they already do well.",
     });
   }
 
   return {
     findings: findings.sort((a, b) => rank(a.severity) - rank(b.severity)),
-    describeRatio,
+    storyRating,
     counts,
     passes: !findings.some((f) => f.severity === "must"),
   };
 }
 
+export interface LibraryFinding {
+  audience: string;
+  celebrating: number;
+  total: number;
+}
+
+/**
+ * The 7th criterion is about a person's whole library rather than any single
+ * story: at least half of what is written for someone should applaud what they
+ * already do well. A collection that is entirely instructions tells its reader
+ * they are a problem to be managed.
+ */
+export function checkLibrary(stories: StorySummary[]): LibraryFinding[] {
+  const byAudience = new Map<string, StorySummary[]>();
+  for (const s of stories) {
+    const key = s.audience?.trim() || "";
+    if (!key) continue; // cannot judge a collection we cannot group
+    byAudience.set(key, [...(byAudience.get(key) ?? []), s]);
+  }
+  return [...byAudience.entries()]
+    .map(([audience, list]) => ({
+      audience,
+      celebrating: list.filter((s) => s.purpose === "celebrate").length,
+      total: list.length,
+    }))
+    .filter((r) => r.total >= 2 && r.celebrating * 2 < r.total);
+}
+
 /**
  * Best-effort guess at a sentence's type, used to pre-fill the tag so authors
- * are correcting rather than starting from nothing. Always overridable — the
- * author's own tag wins.
+ * correct rather than start from nothing. The author's own tag always wins.
+ *
+ * Under 10.4 everything that is not coaching is descriptive — including
+ * sentences about feelings, which earlier revisions treated separately.
  */
 export function classify(text: string): SentenceType {
   const t = text.toLowerCase().trim();
   if (!t) return "descriptive";
-  if (/_{2,}|\.{3}$|…$/.test(t)) return "partial";
-  if (/\b(i (will|can|could) try|i can|i will|i could ask|i should try)\b/.test(t)) {
-    return "coaching";
+  // "I can/will…" is the reader being guided: coaching aimed at the Audience.
+  if (/\b(i (will|can|could|might) (try|ask|use|take|go|tell|look|wait|say|hold|press)|i can try|i will try)\b/.test(t)) {
+    return "coachesAudience";
   }
-  if (/\b(feels?|felt|likes?|enjoys?|happy|sad|angry|worried|proud|scared|hurts?|comfortable)\b/.test(t)) {
-    return "perspective";
-  }
-  if (/\b(this is (okay|ok|important|good|fine|allowed)|that is (okay|ok|good|fine)|it is allowed|that helps)\b/.test(t)) {
-    return "affirmative";
+  // Someone else's response, or the reader's own rehearsed self-talk.
+  if (/\b(will help|can help|helps? me|a grown-?up (will|can)|my (mum|dad|teacher|carer|nurse|doctor) (will|can)|someone (will|can)|staff (will|can))\b/.test(t)) {
+    return "coachesTeam";
   }
   return "descriptive";
 }
 
 export const SENTENCE_TYPE_LABELS: Record<SentenceType, string> = {
-  descriptive: "Describes a fact",
-  perspective: "Describes a thought or feeling",
-  affirmative: "Reassures or emphasises",
-  coaching: "Suggests what to do",
-  partial: "Leaves a gap to fill in",
+  descriptive: "Describes something",
+  coachesAudience: "Tells the reader what to do",
+  coachesTeam: "Says what other people do",
 };
 
 export const SENTENCE_TYPE_HELP: Record<SentenceType, string> = {
-  descriptive: "What happens, who is there, where it is. No opinion.",
-  perspective: "How someone feels or what they think about it.",
-  affirmative: "A short line that steadies the reader — “this is okay”.",
-  coaching: "Suggests a response. Keep these few — see the ratio below.",
-  partial: "A gap the reader fills, used to check they have understood.",
+  descriptive:
+    "A fact about the situation, inside or out — what happens, who is there, how it feels. Most sentences should be this.",
+  coachesAudience:
+    "Guides the reader's own response. At most one of these per story.",
+  coachesTeam:
+    "Describes what other people will do, or self-talk the reader has already rehearsed.",
 };
 
-function indexesMatching(
-  steps: Array<{ text: string }>,
-  re: RegExp,
+function indexesOfType(
+  steps: Array<{ text: string; sentenceType?: SentenceType }>,
+  type: SentenceType,
 ): number[] {
   return steps
     .map((s, i) => ({ s, i }))
+    .filter(({ s }) => (s.sentenceType ?? classify(s.text)) === type)
+    .map(({ i }) => i);
+}
+
+function push(
+  findings: Finding[],
+  steps: Array<{ text: string }>,
+  re: RegExp,
+  finding: Omit<Finding, "steps">,
+) {
+  const hits = steps
+    .map((s, i) => ({ s, i }))
     .filter(({ s }) => re.test(s.text))
     .map(({ i }) => i);
+  if (hits.length > 0) findings.push({ ...finding, steps: hits });
 }
 
 function rank(s: Severity) {

@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { emptyStory, mediaImageUrl, type StoryKind, type StorySummary } from "@/lib/types";
+import {
+  emptyStory,
+  mediaImageUrl,
+  type StoryKind,
+  type StoryPurpose,
+  type StorySummary,
+} from "@/lib/types";
+import { checkLibrary } from "@/lib/quality";
 
 export default function LibraryClient() {
   const router = useRouter();
@@ -26,14 +33,14 @@ export default function LibraryClient() {
     void load();
   }, [load]);
 
-  async function create(kind: StoryKind) {
+  async function create(kind: StoryKind, purpose: StoryPurpose = "explain") {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emptyStory(kind)),
+        body: JSON.stringify(emptyStory(kind, purpose)),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Create failed");
       const { driveFileId } = await res.json();
@@ -66,6 +73,13 @@ export default function LibraryClient() {
         <button
           className="btn secondary"
           disabled={busy}
+          onClick={() => create("story", "celebrate")}
+        >
+          + New celebration
+        </button>
+        <button
+          className="btn secondary"
+          disabled={busy}
           onClick={() => create("pathway")}
         >
           + New care pathway
@@ -73,6 +87,16 @@ export default function LibraryClient() {
       </div>
 
       {error ? <p className="notice error">{error}</p> : null}
+
+      {(stories ? checkLibrary(stories) : []).map((r) => (
+        <p className="notice" key={r.audience}>
+          <strong>{r.audience}</strong> has {r.total} stories, and{" "}
+          {r.celebrating === 0 ? "none" : `only ${r.celebrating}`} of them
+          celebrate something they already do well. The criteria ask for at
+          least half. A collection that is all instructions tells its reader
+          they are a problem to be managed.
+        </p>
+      ))}
 
       {stories === null ? (
         <p className="muted">Loading your Drive…</p>
@@ -102,8 +126,12 @@ export default function LibraryClient() {
                   )}
                 </div>
                 <div className="body">
-                  <span className="tag">
-                    {s.kind === "pathway" ? "Pathway" : "Story"}
+                  <span className={s.purpose === "celebrate" ? "tag good" : "tag"}>
+                    {s.purpose === "celebrate"
+                      ? "Celebrates"
+                      : s.kind === "pathway"
+                        ? "Pathway"
+                        : "Story"}
                   </span>
                   <h3>{s.title}</h3>
                   <p className="muted">

@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import type { Story, StorySummary } from "./types";
+import { migrate, type Story, type StorySummary } from "./types";
 
 const API = "https://www.googleapis.com/drive/v3";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3";
@@ -103,6 +103,9 @@ export async function listStories(token: string): Promise<StorySummary[]> {
       driveFileId: f.id,
       title: f.appProperties?.title ?? f.name.replace(/\.json$/, ""),
       kind: (f.appProperties?.kind as StorySummary["kind"]) ?? "story",
+      purpose:
+        (f.appProperties?.purpose as StorySummary["purpose"]) ?? "explain",
+      audience: f.appProperties?.audience || undefined,
       stepCount: Number(f.appProperties?.stepCount ?? 0),
       cover: f.appProperties?.cover
         ? (JSON.parse(f.appProperties.cover) as StorySummary["cover"])
@@ -120,7 +123,9 @@ export async function readStory(
     cache: "no-store",
   });
   if (!res.ok) throw new DriveError("Could not read story", res.status);
-  return (await res.json()) as Story;
+  // Documents sit in people's Drives indefinitely, so anything older than the
+  // current schema is upgraded on the way in rather than rejected.
+  return migrate((await res.json()) as Story);
 }
 
 function appPropertiesFor(story: Story): Record<string, string> {
@@ -129,6 +134,8 @@ function appPropertiesFor(story: Story): Record<string, string> {
     storyId: story.id,
     title: story.title.slice(0, 120),
     kind: story.kind,
+    purpose: story.purpose,
+    audience: (story.audience ?? "").slice(0, 60),
     stepCount: String(story.steps.length),
     // appProperties values are capped at 124 bytes, so only small refs fit.
     cover: JSON.stringify(story.cover).slice(0, 120),

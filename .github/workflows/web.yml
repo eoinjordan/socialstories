@@ -1,0 +1,65 @@
+name: Web
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/**", ".github/workflows/web.yml"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    name: Typecheck, lint, catalogue, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # The templates we ship have to pass the same story check the app gives
+      # its users. This has caught real problems in our own wording.
+      - name: Check the story catalogue
+        run: npm run check:catalog
+
+      - name: Build
+        run: npm run build
+        env:
+          # Auth.js needs these to exist at build time but never uses them
+          # here; nothing in the build touches Google.
+          AUTH_SECRET: build-time-placeholder-not-a-real-secret
+          AUTH_GOOGLE_ID: placeholder
+          AUTH_GOOGLE_SECRET: placeholder
+
+  symbols:
+    name: ARASAAC symbol keywords still resolve
+    runs-on: ubuntu-latest
+    # Depends on a third-party API, so it reports rather than blocks: an
+    # unresolvable keyword means a template arrives with a blank picture, which
+    # is worth knowing about but not worth failing everyone's build over.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run check:symbols

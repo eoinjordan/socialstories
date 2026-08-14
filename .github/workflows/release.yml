@@ -1,0 +1,90 @@
+name: Release
+
+# Cut a release:  git tag v0.1.0 && git push origin v0.1.0
+#
+# Separate from android.yml because that workflow filters on changed paths, and
+# a path filter combined with a tag trigger does not behave predictably — a tag
+# push could silently build nothing.
+#
+# Signing is optional. With ANDROID_KEYSTORE_BASE64 and its passwords set as
+# repository secrets the APK is signed; without them it still builds and
+# publishes, unsigned, so the repository works for anyone who clones it. An
+# unsigned APK cannot be installed directly — see android/README.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew
+
+      - name: Check for signing config
+        id: signing
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "$KEYSTORE" | base64 -d > keystore.jks
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret; building unsigned."
+          fi
+
+      - name: Assemble release
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.signing.outputs.available == 'true' && 'keystore.jks' || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Also build a debug APK
+        # Debug is signed with the standard debug key, so it can actually be
+        # installed on a device without anyone having to configure signing.
+        run: ./gradlew assembleDebug
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f keystore.jks
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          fail_on_unmatched_files: false

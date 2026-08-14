@@ -3,7 +3,11 @@ name: Android
 on:
   push:
     branches: [main]
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths:
+      - "android/**"
+      # The APK bundles the web app's symbol set, so a change there changes it.
+      - "web/public/symbols/**"
+      - ".github/workflows/android.yml"
   pull_request:
     paths: ["android/**", ".github/workflows/android.yml"]
   workflow_dispatch:
@@ -49,52 +53,3 @@ jobs:
           path: android/app/build/reports/
           if-no-files-found: ignore
 
-  release:
-    name: Signed release APK
-    # Only on a version tag, and only when a keystore has actually been
-    # configured. Without the secrets the job is skipped rather than failing,
-    # so the repository works for anyone who clones it.
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew
-
-      - name: Check for signing config
-        id: signing
-        run: |
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret; building unsigned."
-          fi
-
-      - name: Restore keystore
-        if: steps.signing.outputs.available == 'true'
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-
-      - name: Assemble release
-        run: ./gradlew assembleRelease
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ steps.signing.outputs.available == 'true' && 'keystore.jks' || '' }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Remove keystore
-        if: always()
-        run: rm -f keystore.jks
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: android/app/build/outputs/apk/release/*.apk
-          fail_on_unmatched_files: false

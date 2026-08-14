@@ -1,0 +1,82 @@
+name: GitHub Pages
+
+# Publishes the static companion site: a landing page, and an offline story
+# builder that needs no account and no server.
+#
+# Pages is static hosting, so it deliberately does NOT host the full app —
+# sign-in, the database and Google Drive all need a server, and those live on
+# Vercel. What it can host is genuinely useful on its own: the same story
+# format, the same 10.4 checks and the same bundled symbols, saved in the
+# browser and exportable as a file the web and Android apps both read.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pages/**"
+      - "web/lib/**"
+      - "web/public/symbols/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; never cancel one midway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install (for esbuild and the shared lib)
+        working-directory: web
+        run: npm ci
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/app
+          cp pages/index.html pages/style.css _site/
+          cp pages/app/index.html pages/app/app.js _site/app/
+          # The symbol set is shared with the web app rather than duplicated.
+          cp -r web/public/symbols _site/symbols
+
+      - name: Compile the shared core
+        working-directory: web
+        run: |
+          npx esbuild ../pages/src/core.ts \
+            --bundle --minify --format=iife --target=es2019 \
+            --outfile=../_site/app/core.js
+
+      - name: Report what was built
+        run: |
+          echo "Symbols: $(ls _site/symbols/*.png | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+          echo "core.js: $(du -h _site/app/core.js | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

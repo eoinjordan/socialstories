@@ -31,3 +31,6 @@ Thumbs.db
 # JVM crash artifacts
 hs_err_pid*.log
 replay_pid*.log
+
+# GitHub Pages build output
+_site/

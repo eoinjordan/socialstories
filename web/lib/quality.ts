@@ -366,6 +366,13 @@ export function checkLibrary(stories: StorySummary[]): LibraryFinding[] {
 export function classify(text: string): SentenceType {
   const t = text.toLowerCase().trim();
   if (!t) return "descriptive";
+  // "Now I can wait" and "Today I asked" report something that already
+  // happened; they describe an achievement rather than guiding a future
+  // response. Celebration stories are largely made of these, and counting them
+  // as coaching would push a perfectly good story below the required rating.
+  if (/^(now|today|yesterday)\b/.test(t) || /\bused to\b/.test(t)) {
+    return "descriptive";
+  }
   // "I can/will…" is the reader being guided: coaching aimed at the Audience.
   if (/\b(i (will|can|could|might) (try|ask|use|take|go|tell|look|wait|say|hold|press)|i can try|i will try)\b/.test(t)) {
     return "coachesAudience";

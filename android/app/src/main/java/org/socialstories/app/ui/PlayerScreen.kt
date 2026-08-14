@@ -41,7 +41,6 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import org.socialstories.app.data.Media
 import org.socialstories.app.data.Story
-import java.io.File
 import java.util.Locale
 
 private const val EXIT_HOLD_MS = 3000L
@@ -57,7 +56,7 @@ private const val EXIT_HOLD_MS = 3000L
 @Composable
 fun PlayerScreen(
     story: Story,
-    mediaFile: (Media) -> File?,
+    mediaModel: (Media) -> Any?,
     onExit: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -116,8 +115,8 @@ fun PlayerScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    val picture = step?.media?.let(mediaFile)
-                    if (picture != null && picture.exists()) {
+                    val picture = step?.media?.let(mediaModel)
+                    if (picture != null) {
                         AsyncImage(
                             model = picture,
                             contentDescription = null,

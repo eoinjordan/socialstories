@@ -11,8 +11,37 @@ import java.io.IOException
  */
 class StoryRepository(context: Context) {
 
-    private val cache = StoryCache(context.applicationContext)
+    private val app = context.applicationContext
+    private val cache = StoryCache(app)
     private val drive = DriveClient()
+
+    /**
+     * Pictogram ids shipped inside the APK. Listed once at startup: an asset
+     * lookup per picture per frame would be wasteful, and this set is small.
+     */
+    private val bundledSymbols: Set<Int> by lazy {
+        runCatching {
+            app.assets.list("symbols").orEmpty()
+                .mapNotNull { it.removeSuffix(".png").toIntOrNull() }
+                .toSet()
+        }.getOrDefault(emptySet())
+    }
+
+    /**
+     * What Coil should load for a picture: a bundled asset when we ship it, the
+     * downloaded file otherwise, or null when there is nothing to show yet.
+     */
+    fun mediaModel(media: Media): Any? = when (media) {
+        is Media.Pictogram ->
+            if (media.id in bundledSymbols) {
+                "file:///android_asset/symbols/${media.id}.png"
+            } else {
+                cache.mediaFile(media)?.takeIf { it.exists() }
+            }
+
+        is Media.DriveImage -> cache.mediaFile(media)?.takeIf { it.exists() }
+        Media.None -> null
+    }
 
     data class SyncResult(
         val updated: Int,
@@ -23,8 +52,6 @@ class StoryRepository(context: Context) {
     suspend fun cachedStories(): List<CachedStory> = cache.readAll()
 
     suspend fun cachedStory(driveFileId: String): CachedStory? = cache.read(driveFileId)
-
-    fun mediaFile(media: Media) = cache.mediaFile(media)
 
     suspend fun clear() = cache.clear()
 
@@ -83,6 +110,8 @@ class StoryRepository(context: Context) {
         var fetched = 0
         for (media in story.allMedia()) {
             if (media is Media.None || cache.hasMedia(media)) continue
+            // Anything shipped in the APK never needs fetching.
+            if (media is Media.Pictogram && media.id in bundledSymbols) continue
             val bytes = try {
                 when (media) {
                     is Media.Pictogram -> drive.downloadPictogram(media.id)

@@ -1,3 +1,5 @@
+import { bundledUrl, isBundled } from "./symbols";
+
 /**
  * The on-disk document format. One of these is stored per story as a JSON file
  * in the user's own Google Drive, so the format has to be self-describing and
@@ -156,7 +158,11 @@ export function migrate(raw: Story & { steps: Array<Step & { sentenceType?: stri
 export function mediaImageUrl(media: Media): string | null {
   switch (media.kind) {
     case "pictogram":
-      return `/api/pictograms/image/${media.id}`;
+      // Bundled symbols are served straight from the CDN as static files; the
+      // proxy is only for pictograms that are not shipped with the app.
+      return isBundled(media.id)
+        ? bundledUrl(media.id)
+        : `/api/pictograms/image/${media.id}`;
     case "drive":
       return `/api/media/${media.fileId}`;
     default:

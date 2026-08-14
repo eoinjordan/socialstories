@@ -68,6 +68,27 @@ android {
     }
 }
 
+/**
+ * The bundled symbol set is shared with the web app rather than duplicated in
+ * git: both ship the identical pictograms, so a story looks the same on a
+ * tablet as it did in the editor, and the picker works with no network.
+ *
+ * Images are ARASAAC pictograms (Sergio Palao / Government of Aragon),
+ * CC BY-NC-SA. See web/public/symbols/LICENSE.txt.
+ */
+val bundleSymbols = tasks.register<Copy>("bundleSymbols") {
+    from(rootProject.file("../web/public/symbols")) {
+        include("*.png")
+        include("LICENSE.txt")
+    }
+    into(layout.buildDirectory.dir("generated/symbolAssets/symbols"))
+}
+
+android.sourceSets.getByName("main").assets
+    .srcDir(layout.buildDirectory.dir("generated/symbolAssets"))
+
+tasks.named("preBuild") { dependsOn(bundleSymbols) }
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

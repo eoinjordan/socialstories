@@ -88,7 +88,7 @@ private fun AppRoot(vm: LibraryViewModel = viewModel()) {
     if (story == null) {
         LibraryScreen(
             state = state,
-            mediaFile = { vm.repository().mediaFile(it) },
+            mediaModel = { vm.repository().mediaModel(it) },
             onOpen = { open = it },
             onRefresh = vm::sync,
         )
@@ -105,7 +105,7 @@ private fun AppRoot(vm: LibraryViewModel = viewModel()) {
 
     PlayerScreen(
         story = story.story,
-        mediaFile = { vm.repository().mediaFile(it) },
+        mediaModel = { vm.repository().mediaModel(it) },
         onExit = { open = null },
     )
 }

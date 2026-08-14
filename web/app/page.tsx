@@ -1,5 +1,6 @@
 import { auth, signIn } from "@/auth";
 import { redirect } from "next/navigation";
+import { BUNDLED_COUNT } from "@/lib/symbols";
 
 export default async function Home() {
   const session = await auth();
@@ -59,7 +60,8 @@ export default async function Home() {
       </div>
 
       <p className="muted" style={{ marginTop: 40 }}>
-        Symbols come from{" "}
+        {BUNDLED_COUNT} symbols ship with the app and work offline; the rest of
+        the library is searched live. Symbols come from{" "}
         <a href="https://arasaac.org" rel="noreferrer noopener" target="_blank">
           ARASAAC
         </a>

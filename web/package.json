@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "check:catalog": "tsx scripts/check-catalog.mts",
-    "check:symbols": "tsx scripts/check-catalog.mts --symbols"
+    "check:symbols": "tsx scripts/check-catalog.mts --symbols",
+    "symbols:fetch": "tsx scripts/fetch-symbols.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

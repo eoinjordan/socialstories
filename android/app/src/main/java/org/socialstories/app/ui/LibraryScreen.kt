@@ -30,12 +30,11 @@ import coil.compose.AsyncImage
 import org.socialstories.app.LibraryState
 import org.socialstories.app.data.CachedStory
 import org.socialstories.app.data.Media
-import java.io.File
 
 @Composable
 fun LibraryScreen(
     state: LibraryState,
-    mediaFile: (Media) -> File?,
+    mediaModel: (Media) -> Any?,
     onOpen: (CachedStory) -> Unit,
     onRefresh: () -> Unit,
 ) {
@@ -92,7 +91,7 @@ fun LibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     items(state.stories, key = { it.driveFileId }) { cached ->
-                        StoryCard(cached, mediaFile(cached.story.cover), onOpen)
+                        StoryCard(cached, mediaModel(cached.story.cover), onOpen)
                     }
                 }
             }
@@ -103,7 +102,7 @@ fun LibraryScreen(
 @Composable
 private fun StoryCard(
     cached: CachedStory,
-    cover: File?,
+    cover: Any?,
     onOpen: (CachedStory) -> Unit,
 ) {
     Card {
@@ -112,7 +111,7 @@ private fun StoryCard(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f),
                 contentAlignment = Alignment.Center,
             ) {
-                if (cover != null && cover.exists()) {
+                if (cover != null) {
                     AsyncImage(
                         model = cover,
                         contentDescription = null,

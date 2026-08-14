@@ -17,7 +17,9 @@ interface Props {
 export default function MediaPicker({ value, onChange, label }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Array<{ id: number; label: string }>>([]);
+  const [results, setResults] = useState<
+    Array<{ id: number; label: string; bundled?: boolean }>
+  >([]);
   const [searching, setSearching] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -111,7 +113,14 @@ export default function MediaPicker({ value, onChange, label }: Props) {
                     setOpen(false);
                   }}
                 >
-                  <img alt={r.label} src={`/api/pictograms/image/${r.id}`} />
+                  <img
+                    alt={r.label}
+                    src={
+                      r.bundled
+                        ? `/symbols/${r.id}.png`
+                        : `/api/pictograms/image/${r.id}`
+                    }
+                  />
                 </button>
               ))}
             </div>

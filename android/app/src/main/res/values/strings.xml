@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Social Stories</string>
+    <string name="sign_in">Sign in with Google</string>
+    <string name="sign_in_blurb">Your stories are stored in your own Google Drive and kept on this device so they work without internet.</string>
+    <string name="library">My library</string>
+    <string name="refresh">Refresh from Drive</string>
+    <string name="offline_notice">Offline — showing the copy saved on this device.</string>
+    <string name="play">Play</string>
+    <string name="next">Next</string>
+    <string name="back">Back</string>
+    <string name="start_again">Start again</string>
+    <string name="finished">Finished</string>
+    <string name="hold_to_exit">Hold to exit</string>
+    <string name="exit">Exit</string>
+    <string name="no_picture">No picture</string>
+    <string name="empty_library">Nothing here yet. Create a story on the website, then press refresh.</string>
+    <string name="attribution">Symbols: ARASAAC (Sergio Palao / Government of Aragón), CC BY-NC-SA.</string>
+</resources>

@@ -1,0 +1,29 @@
+# Node / Next
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+.cxx/
+captures/
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
